@@ -714,7 +714,9 @@
 					foreach($parameters as $parameter)
 						$filename .= '&'.$parameter["name"].'='.$parameter["value"];
 				}
-				return file_put_contents($this->_cacheDir.$filename.'.json',$data);
+				if(!is_dir($this->_cacheDir))
+					mkdir($this->_cacheDir);
+				return file_put_contents("$this->_cacheDir$filename.json",$data);
 			} else {
 				echo ($verbose) ? "Data list empty." : "";
 				return false;
@@ -728,7 +730,7 @@
 					$filename .= '&'.$parameter["name"].'='.$parameter["value"];
 			}
 			// check if file can be found and opened
-			if(($cache = @file_get_contents($this->_cacheDir.$filename.'.json')) !== false) {
+			if(($cache = @file_get_contents("$this->_cacheDir$filename.json")) !== false) {
 				// cache file exists and was opened succesfully, check if it is empty
 				if(!empty($cache)) {
 					return ($decode) ? json_decode($cache,true) : $cache;				
