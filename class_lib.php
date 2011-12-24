@@ -1,10 +1,10 @@
 <?php
 	/*
-		Copyright 2011 Stanton T. Cady
+	    Copyright 2011 Stanton T. Cady
 		
-		cumtd_php API v0.1 -- December 21, 2011
+	    cumtd_php API v0.2 -- December 23, 2011
 		
-		This program is free software: you can redistribute it and/or modify
+	    This program is free software: you can redistribute it and/or modify
 	    it under the terms of the GNU General Public License as published by
 	    the Free Software Foundation, either version 3 of the License, or
 	    (at your option) any later version.
@@ -356,6 +356,40 @@
 			}
 			$rsp = $this->getCachedData('GetStopsByLatLon',$parameters,true,$verbose);
 			return $rsp["stops"];
+		}
+		/*
+			Function: getStopsByLatLonWithinRadius
+			
+			Purpose: Gets the stops closest to the specified latitude and longitude within a specified radius
+			
+			Parameters:
+				lat:			(required) latitude
+				lon:			(required) longitude
+				radius:			(required) radius in distance to limit the search for stops
+				verbose: 		(optional) boolean variable to enable/disable printing responses (useful for debugging)
+				
+			Returns: An associative array of stops with the following keys:
+						code:		text message code
+						point:		stop points that compose a parent stop
+						stop_id:	id of stop
+						stop_lat:	latitude of stop
+						stop_lon:	longitude of stop
+						stop_name:	name of stop
+		*/
+		function getStopsByLatLonWithinRadius($lat, $lon, $radius, $verbose = false) {
+			$maxNum = 25;
+			$parameters = array(array("name"=>"lat","value"=>$lat),array("name"=>"lon","value"=>$lon),array("name"=>"count","value"=>$maxNum));
+			$rsp = $this->getCachedData('GetStopsByLatLon',$parameters,true,$verbose);
+			$stops = $rsp["stops"];
+			$radius *= 5280; // convert miles to feet
+			foreach($stops as $index => $stop) {
+				if($stop["distance"] > $radius) {
+					array_splice($stops,$index);
+					return $stops;
+				}
+			}
+			echo ($verbose) ? "Radial limit not reached." : "";
+			return $stops;
 		}
 		/*
 			Function: getStopsBySearch
