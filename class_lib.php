@@ -1,10 +1,10 @@
 <?php
 	/*
-	    Copyright 2011 Stanton T. Cady
+		Copyright 2011 Stanton T. Cady
 		
-	    cumtd_php API v0.2 -- December 23, 2011
+		cumtd_php API v0.3 -- December 24, 2011
 		
-	    This program is free software: you can redistribute it and/or modify
+		This program is free software: you can redistribute it and/or modify
 	    it under the terms of the GNU General Public License as published by
 	    the Free Software Foundation, either version 3 of the License, or
 	    (at your option) any later version.
@@ -91,15 +91,16 @@
 			
 			Parameters: 
 				date: 		(required) date of interest (YYYY-MM-DD)
+				decode:		(optional) if set to true the function will return an associative array, otherwise a json string will be returned
 				verbose: 	(optional) boolean variable to enable/disable printing responses (useful for debugging)
 				
-			Returns: An associative array of calendar dates with the following keys:
+			Returns: An associative array (default) or json string of calendar dates with the following keys:
 						date:		a date this service operates
 						service_id:	id for this service type
 		*/			
-		function getCalendarDatesByDate($date, $verbose = false) {
+		function getCalendarDatesByDate($date, $decode = true, $verbose = false) {
 			$rsp = $this->getCachedData('GetCalendarDatesByDate',array(array("name"=>"date","value"=>$date)),true,$verbose);
-			return $rsp["calendar_dates"];			
+			return ($decode) ? $rsp["calendar_dates"] : json_encode($rsp["calendar_dates"]);			
 		}
 		/*
 			Function: getCalendarDatesByDate
@@ -108,15 +109,16 @@
 			
 			Parameters: 
 				service_id:	(required) id of the service
+				decode:		(optional) if set to true the function will return an associative array, otherwise a json string will be returned
 				verbose: 	(optional) boolean variable to enable/disable printing responses (useful for debugging)
 				
-			Returns: An associative array of calendar dates with the following keys:
+			Returns: An associative array (default) or json string of calendar dates with the following keys:
 						date:		a date this service operates
 						service_id:	id for this service type
 		*/		
-		function getCalendarDatesByService($service_id, $verbose = false) {
+		function getCalendarDatesByService($service_id, $decode = true, $verbose = false) {
 			$rsp = $this->getCachedData('GetCalendarDatesByService',array(array("name"=>"service_id","value"=>$service_id)),true,$verbose);
-			return $rsp["calendar_dates"];			
+			return ($decode) ? $rsp["calendar_dates"] : json_encode($rsp["calendar_dates"]);			
 		} 
 		/// Departures
 		/*
@@ -129,9 +131,10 @@
 				route_id: 	(optional) string or array of stings of bus route id(s) (e.g. ILLINI is the route_id for the 22)
 				pt: 		(optional) preview time in minutes between 0 and 60 (default is 30)
 				count:		(optional) maximum number of departures you would like to receive
+				decode:		(optional) if set to true the function will return an associative array, otherwise a json string will be returned
 				verbose: 	(optional) boolean variable to enable/disable printing responses (useful for debugging)
 				
-			Returns: An associative array of departures with the following keys:
+			Returns: An associative array (default) or json string of departures with the following keys:
 						destination:	trip's destination stop
 						expected:		expected departure time of the bus for the given stop
 						expected_mins:	number of minutes before expected departure time
@@ -146,7 +149,7 @@
 						trip:			trip information for the departure
 						vehicle_id:		id associated with vehicle
 		*/	
-		function getDeparturesByStop($stop_id, $route_id = NULL, $pt = 30, $count = NULL, $verbose = false) {
+		function getDeparturesByStop($stop_id, $route_id = NULL, $pt = 30, $count = NULL, $decode = true, $verbose = false) {
 			$parameters = array(array("name"=>"stop_id","value"=>$stop_id));
 			if(!is_null($route_id)) {
 				if(is_array($route_id))
@@ -161,7 +164,7 @@
 			if(!is_null($count))
 				array_push($parameters,array("name"=>"count","value"=>$count));			
 			$rsp = $this->getCachedData('GetDeparturesByStop',$parameters,true,$verbose);
-			return $rsp["departures"];
+			return ($decode) ? $rsp["departures"] : json_encode($rsp["departures"]);
 		}
 		
 		/// Routes		
@@ -172,16 +175,17 @@
 			
 			Parameters: 
 				route_id: 	(required) string or array of stings of bus route ID(s) (e.g. ILLINI is the route_id for the 22)
+				decode:		(optional) if set to true the function will return an associative array, otherwise a json string will be returned
 				verbose: 	(optional) boolean variable to enable/disable printing responses (useful for debugging)
 				
-			Returns: An associative array of routes matching the specified ID(s) with the following keys:
+			Returns: An associative array (default) or json string of routes matching the specified ID(s) with the following keys:
 						route_color:		hex color of route
 						route_id:			id of route
 						route_long_name:	long name
 						route_short_name:	short name
 						route_text_color:	hex color of text for route
 		*/			
-		function getRoute($route_id, $verbose = false) {
+		function getRoute($route_id, $decode = true, $verbose = false) {
 			if(is_array($route_id))
 				foreach($route_id as $route)
 					$routes .= ';'.urlencode($route);
@@ -189,7 +193,7 @@
 				$routes = urlencode($route_id);
 			$parameters = array(array("name"=>"route_id","value"=>$routes));
 			$rsp = $this->getCachedData('GetRoute',$parameters,true,$verbose);
-			return $rsp["routes"];
+			return ($decode) ? $rsp["routes"] : json_encode($rsp["routes"]);
 		}
 		/*
 			Function: getRoute
@@ -197,18 +201,19 @@
 			Purpose: Gets the entire list of routes 
 			
 			Parameters: 
+				decode:		(optional) if set to true the function will return an associative array, otherwise a json string will be returned
 				verbose: 	(optional) boolean variable to enable/disable printing responses (useful for debugging)
 				
-			Returns: An associative array of routes with the following keys:
+			Returns: An associative array (default) or json string of routes with the following keys:
 						route_color:		hex color of route
 						route_id:			id of route
 						route_long_name:	long name
 						route_short_name:	short name
 						route_text_color:	hex color of text for route
 		*/			
-		function getRoutes($verbose = false) {
+		function getRoutes($decode = true, $verbose = false) {
 			$rsp = $this->getCachedData('GetRoutes',array(),true,$verbose);
-			return $rsp["routes"];
+			return ($decode) ? $rsp["routes"] : json_encode($rsp["routes"]);
 		}
 		/*
 			Function: getRoutesByStop
@@ -217,18 +222,19 @@
 			
 			Parameters: 
 				stop_id: 	(required) id of the stop to get routes for (e.g. IU is the stop_id for Illini Union)
+				decode:		(optional) if set to true the function will return an associative array, otherwise a json string will be returned
 				verbose: 	(optional) boolean variable to enable/disable printing responses (useful for debugging)
 				
-			Returns: An associative array of routes with the following keys:
+			Returns: An associative array (default) or json string of routes with the following keys:
 						route_color:		hex color of route
 						route_id:			id of route
 						route_long_name:	long name
 						route_short_name:	short name
 						route_text_color:	hex color of text for route
 		*/			
-		function getRoutesByStop($stop_id, $verbose = false) {
+		function getRoutesByStop($stop_id, $decode = true, $verbose = false) {
 			$rsp = $this->getCachedData('GetRoutesByStop',array(array("name"=>"stop_id","value"=>$stop_id)),true,$verbose);
-			return $rsp["routes"];
+			return ($decode) ? $rsp["routes"] : json_encode($rsp["routes"]);
 		}
 		
 		/// Shapes
@@ -239,18 +245,19 @@
 			
 			Parameters: 
 				shape_id: 	(required) id of the shape
+				decode:		(optional) if set to true the function will return an associative array, otherwise a json string will be returned
 				verbose: 	(optional) boolean variable to enable/disable printing responses (useful for debugging)
 				
-			Returns: An associative array of shapes with the following keys:
+			Returns: An associative array (default) or json string of shapes with the following keys:
 						shape_dist_traveled:	total distance traveled to this point
 						shape_pt_lat:			latitude of point
 						shape_pt_lon:			longitude of point
 						stop_id:				stop id associeated with the shape point
 						shape_pt_sequence:		sequence of point in GTFS feed
 		*/			
-		function getShape($shape_id, $verbose = false) {
+		function getShape($shape_id, $decode = true, $verbose = false) {
 			$rsp = $this->getCachedData('GetShape',array(array("name"=>"shape_id","value"=>$shape_id)),true,$verbose);
-			return $rsp["shapes"];
+			return ($decode) ? $rsp["shapes"] : json_encode($rsp["shapes"]);
 		}
 		/*
 			Function: getShapeBetweenStops
@@ -262,22 +269,23 @@
 				begin_stop_id	(required) id of the beginning stop
 				end_stop_id		(required) id of ending stop
 				shape_id: 		(required) id of the shape
+				decode:			(optional) if set to true the function will return an associative array, otherwise a json string will be returned
 				verbose: 		(optional) boolean variable to enable/disable printing responses (useful for debugging)
 				
-			Returns: An associative array of shapes with the following keys:
+			Returns: An associative array (default) or json string of shapes with the following keys:
 						shape_dist_traveled:	total distance traveled to this point
 						shape_pt_lat:			latitude of point
 						shape_pt_lon:			longitude of point
 						stop_id:				stop id associeated with the shape point
 						shape_pt_sequence:		sequence of point in GTFS feed
 		*/			
-		function getShapeBetweenStops($begin_stop_id, $end_stop_id, $shape_id, $verbose = false) {
+		function getShapeBetweenStops($begin_stop_id, $end_stop_id, $shape_id, $decode = true, $verbose = false) {
 			$parameters = array();
 			array_push($parameters,array("name"=>"begin_stop_id","value"=>$begin_stop_id));
 			array_push($parameters,array("name"=>"end_stop_id","value"=>$end_stop_id));
 			array_push($parameters,array("name"=>"shape_id","value"=>$shape_id));
 			$rsp = $this->getCachedData('GetShapeBetweenStops',$parameters,true,$verbose);
-			return $rsp["shapes"];
+			return ($decode) ? $rsp["shapes"] : json_encode($rsp["shapes"]);
 		}
 		
 		/// Stops
@@ -288,9 +296,10 @@
 			
 			Parameters: 
 				stop_id:		(required) id of the stop
+				decode:			(optional) if set to true the function will return an associative array, otherwise a json string will be returned
 				verbose: 		(optional) boolean variable to enable/disable printing responses (useful for debugging)
 				
-			Returns: An associative array of stops with the following keys:
+			Returns: An associative array (default) or json string of stops with the following keys:
 						code:		text message code
 						point:		stop points that compose a parent stop
 						stop_id:	id of stop
@@ -298,14 +307,14 @@
 						stop_lon:	longitude of stop
 						stop_name:	name of stop
 		*/
-		function getStop($stop_id, $verbose = false) {
+		function getStop($stop_id, $decode = true, $verbose = false) {
 			if(is_array($stop_id))
 				foreach($stop_id as $stop)
 					$stops .= ';'.$stop;
 			else
 				$stops = $stop_id;
 			$rsp = $this->getCachedData('GetStop',array("name"=>"stop_id","value"=>$stops),true,$verbose);
-			return $rsp["stops"];
+			return ($decode) ? $rsp["stops"] : json_encode($rsp["stops"]);
 		}
 		/*
 			Function: getStops
@@ -313,9 +322,10 @@
 			Purpose: Gets the entire list of stops (2500+)
 			
 			Parameters: 
+				decode:			(optional) if set to true the function will return an associative array, otherwise a json string will be returned
 				verbose: 		(optional) boolean variable to enable/disable printing responses (useful for debugging)
 				
-			Returns: An associative array of stops with the following keys:
+			Returns: An associative array (default) or json string of stops with the following keys:
 						code:		text message code
 						point:		stop points that compose a parent stop
 						stop_id:	id of stop
@@ -323,9 +333,9 @@
 						stop_lon:	longitude of stop
 						stop_name:	name of stop
 		*/			
-		function getStops($verbose = false) {
+		function getStops($decode = true, $verbose = false) {
 			$rsp = $this->getCachedData('GetStops',array(),true,$verbose);
-			return $rsp["stops"];
+			return ($decode) ? $rsp["stops"] : json_encode($rsp["stops"]);
 		}
 		/*
 			Function: getStopsByLatLon
@@ -336,9 +346,10 @@
 				lat:			(required) latitude
 				lon:			(required) longitude
 				count:			(optional) number of stops to return (default is 20)
+				decode:			(optional) if set to true the function will return an associative array, otherwise a json string will be returned
 				verbose: 		(optional) boolean variable to enable/disable printing responses (useful for debugging)
 				
-			Returns: An associative array of stops with the following keys:
+			Returns: An associative array (default) or json string of stops with the following keys:
 						code:		text message code
 						point:		stop points that compose a parent stop
 						stop_id:	id of stop
@@ -346,7 +357,7 @@
 						stop_lon:	longitude of stop
 						stop_name:	name of stop
 		*/			
-		function getStopsByLatLon($lat, $lon, $count = 20, $verbose = false) {
+		function getStopsByLatLon($lat, $lon, $count = 20, $decode = true, $verbose = false) {
 			$parameters = array(array("name"=>"lat","value"=>$lat),array("name"=>"lon","value"=>$lon));
 			if($count != 20) {
 				if(is_numeric($count))
@@ -355,7 +366,7 @@
 					echo ($verbose) ? "Invalid count." : "";
 			}
 			$rsp = $this->getCachedData('GetStopsByLatLon',$parameters,true,$verbose);
-			return $rsp["stops"];
+			return ($decode) ? $rsp["stops"] : json_encode($rsp["stops"]);
 		}
 		/*
 			Function: getStopsByLatLonWithinRadius
@@ -366,9 +377,10 @@
 				lat:			(required) latitude
 				lon:			(required) longitude
 				radius:			(required) radius in distance to limit the search for stops
+				decode:			(optional) if set to true the function will return an associative array, otherwise a json string will be returned
 				verbose: 		(optional) boolean variable to enable/disable printing responses (useful for debugging)
 				
-			Returns: An associative array of stops with the following keys:
+			Returns: An associative array (default) or json string of stops with the following keys:
 						code:		text message code
 						point:		stop points that compose a parent stop
 						stop_id:	id of stop
@@ -376,20 +388,27 @@
 						stop_lon:	longitude of stop
 						stop_name:	name of stop
 		*/
-		function getStopsByLatLonWithinRadius($lat, $lon, $radius, $verbose = false) {
+		function getStopsByLatLonWithinRadius($lat, $lon, $radius, $decode = true, $verbose = false) {
 			$maxNum = 25;
 			$parameters = array(array("name"=>"lat","value"=>$lat),array("name"=>"lon","value"=>$lon),array("name"=>"count","value"=>$maxNum));
 			$rsp = $this->getCachedData('GetStopsByLatLon',$parameters,true,$verbose);
-			$stops = $rsp["stops"];
-			$radius *= 5280; // convert miles to feet
+			$stops = $rsp["stops"];	// get stops array
+			$oC = count($stops);	// get original number of stops found
+			$radius *= 5280; 		// convert miles to feet
 			foreach($stops as $index => $stop) {
 				if($stop["distance"] > $radius) {
 					array_splice($stops,$index);
-					return $stops;
+					break;
 				}
 			}
-			echo ($verbose) ? "Radial limit not reached." : "";
-			return $stops;
+			if(empty($stops)) {
+				echo ($verbose) ? "No stops found within specified radius." : "";
+				return "No stops found.";
+			} else {
+				if(count($stops) == $oC && $verbose)
+					echo "Radial limit not reached.";
+				return ($decode) ? $stops : json_encode($stops);
+			}
 		}
 		/*
 			Function: getStopsBySearch
@@ -399,9 +418,10 @@
 			Parameters:
 				query:			(required) search query
 				count:			(optional) number of stops to return (default is 10)
+				decode:			(optional) if set to true the function will return an associative array, otherwise a json string will be returned
 				verbose: 		(optional) boolean variable to enable/disable printing responses (useful for debugging)
 				
-			Returns: An associative array of stops with the following keys:
+			Returns: An associative array (default) or json string of stops with the following keys:
 						code:		text message code
 						point:		stop points that compose a parent stop
 						stop_id:	id of stop
@@ -409,7 +429,7 @@
 						stop_lon:	longitude of stop
 						stop_name:	name of stop
 		*/			
-		function getStopsBySearch($query, $count = 10, $verbose = false) {
+		function getStopsBySearch($query, $count = 10, $decode = true, $verbose = false) {
 			$parameters = array(array("name"=>"query","value"=>urlencode($query)));
 			if($count != 10) {
 				if(is_numeric($count) && $count >=1 && $count <= 100)
@@ -418,7 +438,7 @@
 					echo ($verbose) ? "Invalid count." : "";
 			}
 			$rsp = $this->getCachedData('GetStopsBySearch',$parameters,true,$verbose);
-			return $rsp["stops"];
+			return ($decode) ? $rsp["stops"] : json_encode($rsp["stops"]);
 		}	
 		
 		/// Stop Times
@@ -429,18 +449,19 @@
 			
 			Parameters:
 				trip_id:		(required) id of the trip
+				decode:			(optional) if set to true the function will return an associative array, otherwise a json string will be returned
 				verbose: 		(optional) boolean variable to enable/disable printing responses (useful for debugging)
 				
-			Returns: An associative array of stop times with the following keys:
+			Returns: An associative array (default) or json string of stop times with the following keys:
 						arrival_times:	scheduled time of arrival (HH:mm:ss)
 						departure_time:	scheduled time of departure (HH:mm:ss)
 						stop_id:		id of stop
 						stop_sequence:	sequence of stop
 						trip_id:		id of trip
 		*/		
-		function getStopTimesByTrip($trip_id, $verbose = false) {
+		function getStopTimesByTrip($trip_id, $decode = true, $verbose = false) {
 			$rsp = $this->getCachedData('GetStopTimesByTrip',array(array("name"=>"trip_id","value"=>$trip_id)),true,$verbose);
-			return $rsp["stop_times"];			
+			return ($decode) ? $rsp["stop_times"] : json_encode($rsp["stop_times"]);			
 		} 	
 		/*
 			Function: getStopTimesByStop
@@ -451,16 +472,17 @@
 				stop_id: 		(required) id of the stop (e.g. IU is the stop_id for Illini Union)
 				route_id: 		(optional) string or array of stings of bus route id(s) (e.g. ILLINI is the route_id for the 22)
 				date:			(optional) scheduled date (YYYY-MM-DD)
+				decode:			(optional) if set to true the function will return an associative array, otherwise a json string will be returned
 				verbose: 		(optional) boolean variable to enable/disable printing responses (useful for debugging)
 				
-			Returns: An associative array of stop times with the following keys:
+			Returns: An associative array (default) or json string of stop times with the following keys:
 						arrival_times:	scheduled time of arrival (HH:mm:ss)
 						departure_time:	scheduled time of departure (HH:mm:ss)
 						stop_id:		id of stop
 						stop_sequence:	sequence of stop
 						trip_id:		id of trip
 		*/	
-		function getStopTimesByStop($stop_id, $route_id = NULL, $date = NULL, $verbose = false) {
+		function getStopTimesByStop($stop_id, $route_id = NULL, $date = NULL, $decode = true, $verbose = false) {
 			$parameters = array(array("name"=>"stop_id","value"=>$stop_id));
 			if(!is_null($route_id)) {
 				if(is_array($route_id))
@@ -473,7 +495,7 @@
 			if(!is_null($date))
 				array_push($parameters,array("name"=>"date","value"=>$date));
 			$rsp = $this->getCachedData('GetStopTimesByStop',$parameters,true,$verbose);
-			return $rsp["stop_times"];			
+			return ($decode) ? $rsp["stop_times"] : json_encode($rsp["stop_times"]);			
 		}
 		
 		/// Trip Planner
@@ -492,9 +514,10 @@
 				max_walk:			(optional) maximum allowed walking distance in miles (default is 0.5)
 				minimize:			(optional) minimize walking, transfers or time (default is time)
 				arrive_depart:		(optional) whether to plan the trip to arrive or depart at the specified time (default is depart)
+				decode:				(optional) if set to true the function will return an associative array, otherwise a json string will be returned
 				verbose: 			(optional) boolean variable to enable/disable printing responses (useful for debugging)
 				
-			Returns: An associative array of itineraries with the following keys:
+			Returns: An associative array (default) or json string of itineraries with the following keys:
 						itinerary:	a single itinerary to complete the requested trip
 						leg:		a single leg in an itinerary. this can be either riding or walking.
 						walk:		a leg of the journey that requires walking.
@@ -502,7 +525,7 @@
 						begin:		the starting point for a leg
 						end:		the ending point for a leg
 		*/		
-		function getPlannedTripsByLatLon($origin_lat, $origin_lon, $destination_lat, $destination_lon, $date = NULL, $time = NULL, $max_walk = 0.5, $minimize = 'time', $arrive_depart = 'depart', $verbose = false) {
+		function getPlannedTripsByLatLon($origin_lat, $origin_lon, $destination_lat, $destination_lon, $date = NULL, $time = NULL, $max_walk = 0.5, $minimize = 'time', $arrive_depart = 'depart', $decode = true, $verbose = false) {
 			$parameters = array(array("name"=>"origin_lat","value"=>$origin_lat),array("name"=>"origin_lon","value"=>$origin_lon),array("name"=>"destination_lat","value"=>$destination_lat),array("name"=>"destination_lon","value"=>$destination_lon));
 			if(!is_null($date))
 				array_push($parameters,array("name"=>"date","value"=>$date));
@@ -515,7 +538,7 @@
 			if($arrive_depart != 'depart' || $arrive_depart == 'arrive')
 				array_push($parameters,array("name"=>"arrive_depart","value"=>$arrive_depart));	
 			$rsp = $this->getCachedData('GetPlannedTripsByLatLon',$parameters,true,$verbose);
-			return $rsp["itineraries"];					
+			return ($decode) ? $rsp["itineraries"] : json_encode($rsp["itineraries"]);					
 		}
 		/*
 			Function: getPlannedTripsByStops
@@ -530,9 +553,10 @@
 				max_walk:				(optional) maximum allowed walking distance in miles (default is 0.5)
 				minimize:				(optional) minimize walking, transfers or time (default is time)
 				arrive_depart:			(optional) whether to plan the trip to arrive or depart at the specified time (default is depart)
+				decode:					(optional) if set to true the function will return an associative array, otherwise a json string will be returned
 				verbose: 				(optional) boolean variable to enable/disable printing responses (useful for debugging)
 				
-			Returns: An associative array of itineraries with the following keys:
+			Returns: An associative array (default) or json string of itineraries with the following keys:
 						itinerary:	a single itinerary to complete the requested trip
 						leg:		a single leg in an itinerary. this can be either riding or walking.
 						walk:		a leg of the journey that requires walking.
@@ -540,7 +564,7 @@
 						begin:		the starting point for a leg
 						end:		the ending point for a leg
 		*/			
-		function getPlannedTripsByStops($origin_stop_id, $destination_stop_id, $date = NULL, $time = NULL, $max_walk = 0.5, $minimize = 'time', $arrive_depart = 'depart', $verbose = false) {
+		function getPlannedTripsByStops($origin_stop_id, $destination_stop_id, $date = NULL, $time = NULL, $max_walk = 0.5, $minimize = 'time', $arrive_depart = 'depart', $decode = true, $verbose = false) {
 			$parameters = array(array("name"=>"origin_stop_id","value"=>$origin_stop_id),array("name"=>"destination_stop_id","value"=>$destination_stop_id));
 			if(!is_null($date))
 				array_push($parameters,array("name"=>"date","value"=>$date));
@@ -553,7 +577,7 @@
 			if($arrive_depart != 'depart' || $arrive_depart == 'arrive')
 				array_push($parameters,array("name"=>"arrive_depart","value"=>$arrive_depart));	
 			$rsp = $this->getCachedData('GetPlannedTripsByStops',$parameters,true,$verbose);
-			return $rsp["itineraries"];			
+			return ($decode) ? $rsp["itineraries"] : json_encode($rsp["itineraries"]);			
 		}
 		
 		/// Trips
@@ -563,17 +587,18 @@
 			Purpose: Gets information about the specified trip
 			
 			Parameters:
-				trip_id: 			(required) string or array of stings of trip id(s)
-				verbose:			(optional) boolean variable to enable/disable printing responses (useful for debugging)
+				trip_id: 		(required) string or array of stings of trip id(s)
+				decode:			(optional) if set to true the function will return an associative array, otherwise a json string will be returned
+				verbose:		(optional) boolean variable to enable/disable printing responses (useful for debugging)
 				
-			Returns: An associative array of trips with the following keys:
+			Returns: An associative array (default) or json string of trips with the following keys:
 						route_id:		id of route
 						service_id:		id of service
 						shape_id:		id of shape
 						trip_headsign:	information usually shown on headsign
 						trip_id:		id of trip
 		*/		
-		function getTrip($trip_id, $verbose = false) {
+		function getTrip($trip_id, $decode = true, $verbose = false) {
 			$parameters = array();
 			if(is_array($trip_id))
 				foreach($trip_id as $trip)
@@ -582,7 +607,7 @@
 				$trips = urlencode($trip_id);
 			array_push($parameters,array("name"=>"trip_id","value"=>$trips));
 			$rsp = $this->getCachedData('GetTrip',$parameters,true,$verbose);
-			return $rsp["trips"];
+			return ($decode) ? $rsp["trips"] : json_encode($rsp["trips"]);
 		}
 		/*
 			Function: getTripsByBlock
@@ -590,19 +615,20 @@
 			Purpose: Gets information about the specified trip given a block id
 			
 			Parameters:
-				block_id: 			(required) id of block you would like trips for
-				verbose:			(optional) boolean variable to enable/disable printing responses (useful for debugging)
+				block_id: 		(required) id of block you would like trips for
+				decode:			(optional) if set to true the function will return an associative array, otherwise a json string will be returned
+				verbose:		(optional) boolean variable to enable/disable printing responses (useful for debugging)
 				
-			Returns: An associative array of trips with the following keys:
+			Returns: An associative array (default) or json string of trips with the following keys:
 						route_id:		id of route
 						service_id:		id of service
 						shape_id:		id of shape
 						trip_headsign:	information usually shown on headsign
 						trip_id:		id of trip
 		*/			
-		function getTripsByBlock($block_id, $verbose = false) {
+		function getTripsByBlock($block_id, $decode = true, $verbose = false) {
 			$rsp = $this->getCachedData('GetTripsByBlock',array(array("name"=>"block_id","value"=>$block_id)),true,$verbose);
-			return $rsp["trips"];		
+			return ($decode) ? $rsp["trips"] : json_encode($rsp["trips"]);		
 		}
 		/*
 			Function: getTripsByRoute
@@ -610,19 +636,20 @@
 			Purpose: Gets information about the specified trip given a route id
 			
 			Parameters:
-				route_id: 			(required) id of route you would like trips for
-				verbose:			(optional) boolean variable to enable/disable printing responses (useful for debugging)
+				route_id: 		(required) id of route you would like trips for
+				decode:			(optional) if set to true the function will return an associative array, otherwise a json string will be returned
+				verbose:		(optional) boolean variable to enable/disable printing responses (useful for debugging)
 				
-			Returns: An associative array of trips with the following keys:
+			Returns: An associative array (default) or json string of trips with the following keys:
 						route_id:		id of route
 						service_id:		id of service
 						shape_id:		id of shape
 						trip_headsign:	information usually shown on headsign
 						trip_id:		id of trip
 		*/			
-		function getTripsByRoute($route_id, $verbose = false) {
+		function getTripsByRoute($route_id, $decode = true, $verbose = false) {
 			$rsp = $this->getCachedData('GetTripsByRoute',array(array("name"=>"route_id","value"=>$route_id)),true,$verbose);
-			return $rsp["trips"];		
+			return ($decode) ? $rsp["trips"] : json_encode($rsp["trips"]);		
 		}
 		
 		/// Metadata
@@ -632,7 +659,7 @@
 			Purpose: Gets the time the feed was last updated
 			
 			Parameters:
-				verbose:			(optional) boolean variable to enable/disable printing responses (useful for debugging)
+				verbose:	(optional) boolean variable to enable/disable printing responses (useful for debugging)
 				
 			Returns: An associative array the following keys:
 						last_updated:	the date the feed was last updated
