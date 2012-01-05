@@ -1,8 +1,8 @@
 <?php
 	/*
-		Copyright 2011 Stanton T. Cady
+		Copyright 2012, 2011 Stanton T. Cady
 		
-		cumtd_php API v0.3 -- December 24, 2011
+		cumtd_php API v0.3 -- January 05, 2012
 		
 		This program is free software: you can redistribute it and/or modify
 	    it under the terms of the GNU General Public License as published by
@@ -747,23 +747,36 @@
 					echo ($verbose) ? "Cache file retrieved successfully.\n" : "";
 					// decode cache to get changeset_id
 					$cache = json_decode($cache_json,true);
-					// check if any parameters were passed in and make new parameter array if none were
-					if(!is_array($parameters))
-						$parameters = array();
-					// put changeset id in parameter array
-					array_push($parameters,array("name"=>"changeset_id","value"=>$cache["changeset_id"]));
-					// get dataset from server with changeset id from cached data
-					$server_json = $this->getResponse($command,$parameters,false,$verbose);
-					// remove changeset id from parameters array in case it is used later
-					array_pop($parameters);
-					// check if server data matches cached data and return cache if it does
-					if($server_json == 202) {
-						echo ($verbose) ? "Cached data matches server data.\n" : "";
-						return ($decode) ? $cache : $cache_json;
-					}
-				} else {
+					// check if the changeset_id key exists in the cache data...dataset could be empty in which case there will be no changeset_id or it could be a dataset with no changeset_id
+					if(array_key_exists("changeset_id",$cache)) {
+						echo ($verbose) ? "Changeset_id exists, comparing cached data to data from server.\n" : "";
+						// check if any parameters were passed in and make new parameter array if none were
+						if(!is_array($parameters))
+							$parameters = array();
+						// put changeset id in parameter array
+						array_push($parameters,array("name"=>"changeset_id","value"=>$cache["changeset_id"]));
+						// get dataset from server with changeset id from cached data
+						$server_json = $this->getResponse($command,$parameters,false,$verbose);
+						// remove changeset id from parameters array in case it is used later
+						array_pop($parameters);
+						// check if server data matches cached data and return cache if it does
+						if($server_json == 202) {
+							echo ($verbose) ? "Cached data matches server data.\n" : "";
+							return ($decode) ? $cache : $cache_json;
+						}
+					// If no changeset_id exists, check if the data contains a timestamp
+					} elseif(array_key_exists("time",$cache)) {
+						echo ($verbose) ? "Timestamp exists, comparing to last feed update timestamp.\n" : "";
+						// compare the timestamp of the cached data to the last feed update timestamp
+						if($cache["time"] == $this->getLastFeedUpdate($verbose)) {
+							// feed has not been updated since cached data was retrieved
+							echo ($verbose) ? "Cached data timestamp matches feed update timestamp.\n" : "";
+							return ($decode) ? $cache : $cache_json;
+						}
+					} else
+						echo ($verbose) ? "Dataset contained in cache was empty and/or did not contain a changeset_id or data was stale.\n" : "";
+				} else
 					echo ($verbose) ? "Cache file could not be accessed.\n" : "";
-				}
 			}
 			// check if data retrieved in previous section and get data if not
 			if(!isset($server_json)) {
@@ -788,7 +801,7 @@
 				}
 				if(!is_dir($this->_cacheDir))
 					mkdir($this->_cacheDir);
-				echo ($verbose) ? "Attempting to save cache to $this->_cacheDir$filename.json \n" : "";
+				echo ($verbose) ? "Attempting to save cache to $this->_cacheDir$filename.json.\n" : "";
 				return file_put_contents("$this->_cacheDir$filename.json",$data);
 			} else {
 				echo ($verbose) ? "Data list empty." : "";
