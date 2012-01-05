@@ -389,7 +389,7 @@
 						stop_name:	name of stop
 		*/
 		function getStopsByLatLonWithinRadius($lat, $lon, $radius, $decode = true, $verbose = false) {
-			$maxNum = 25;
+			$maxNum = 30;
 			$parameters = array(array("name"=>"lat","value"=>$lat),array("name"=>"lon","value"=>$lon),array("name"=>"count","value"=>$maxNum));
 			$rsp = $this->getCachedData('GetStopsByLatLon',$parameters,true,$verbose);
 			$stops = $rsp["stops"];	// get stops array
@@ -403,7 +403,7 @@
 			}
 			if(empty($stops)) {
 				echo ($verbose) ? "No stops found within specified radius." : "";
-				return "No stops found.";
+				return ($decode) ? "Error: no stops found." : json_encode(array("error"=>"No stops found."));
 			} else {
 				if(count($stops) == $oC && $verbose)
 					echo "Radial limit not reached.";
@@ -691,46 +691,46 @@
 						return $status;
 				} else {
 					// cannot use file_get_contents method for retreiving response from cumtd
-					echo $verbose ? 'Cannot load data from remote server.' : '';
+					echo $verbose ? "Cannot load data from remote server.\n" : "";
 					return false;
 				}
 				// add cURL later
 			} else
-				echo $verbose ? 'Invalid command parameter.' : '';
+				echo $verbose ? "Invalid command parameter.\n" : "";
 		}
 		
 		private function checkStatus($status, $verbose = false) {
 			switch($status["code"]) {
 				case 200:
-					echo $verbose ? "The request was completed successfully: ".$status["msg"] : "";
+					echo $verbose ? "The request was completed successfully: ".$status["msg"].".\n" : "";
 					return 200;
 					break;
 				case 202:
-					echo $verbose ? "The dataset has not been modified: ".$status["msg"] : "";
+					echo $verbose ? "The dataset has not been modified: ".$status["msg"].".\n" : "";
 					return 202;
 					break;
 				case 400:
-					echo $verbose ? "A parameter was invalid: ".$status["msg"] : "";
+					echo $verbose ? "A parameter was invalid: ".$status["msg"].".\n" : "";
 					return 400;
 					break;
 				case 401:
-					echo $verbose ? "The API key provided is invalid: ".$status["msg"] : "";
+					echo $verbose ? "The API key provided is invalid: ".$status["msg"].".\n" : "";
 					return 401;
 					break;
 				case 403:
-					echo $verbose ? "The hourly request limit on the given key has been reached: ".$status["msg"] : "";
+					echo $verbose ? "The hourly request limit on the given key has been reached: ".$status["msg"].".\n" : "";
 					return 403;
 					break;
 				case 404:
-					echo $verbose ? "The requested method does not exist: ".$status["msg"] : "";
+					echo $verbose ? "The requested method does not exist: ".$status["msg"].".\n" : "";
 					return 404;
 					break;
 				case 500:
-					echo $verbose ? "The server encountered an error: ".$status["msg"] : "";
+					echo $verbose ? "The server encountered an error: ".$status["msg"].".\n" : "";
 					return 500;
 					break;
 				default:
-					echo $verbose ? "Cannot process status: ".$status["msg"] : "";
+					echo $verbose ? "Cannot process status: ".$status["msg"].".\n" : "";
 					return 0;
 					break;
 			}
@@ -739,10 +739,12 @@
 		private function getCachedData($command, $parameters, $decode = true, $verbose = false) {
 			// check if cache is enabled (default)
 			if($this->_useCache === true) {
+				echo ($verbose) ? "Cache enabled.\n" : "";
 				// get data from cache
 				$cache_json = $this->getDataFromCache($command,$parameters,false,$verbose);
 				// check if cache was retrieved successfully
 				if($cache_json !== false) {
+					echo ($verbose) ? "Cache file retrieved successfully.\n" : "";
 					// decode cache to get changeset_id
 					$cache = json_decode($cache_json,true);
 					// check if any parameters were passed in and make new parameter array if none were
@@ -755,15 +757,24 @@
 					// remove changeset id from parameters array in case it is used later
 					array_pop($parameters);
 					// check if server data matches cached data and return cache if it does
-					if($server_json == 202)
+					if($server_json == 202) {
+						echo ($verbose) ? "Cached data matches server data.\n" : "";
 						return ($decode) ? $cache : $cache_json;
+					}
+				} else {
+					echo ($verbose) ? "Cache file could not be accessed.\n" : "";
 				}
 			}
 			// check if data retrieved in previous section and get data if not
-			if(!isset($server_json))
+			if(!isset($server_json)) {
+				echo ($verbose) ? "Getting new data from server.\n" : "";
 				$server_json = $this->getResponse($command,$parameters,false,$verbose);
+			}
 			// cache data from server
-			$this->cacheData($server_json,$command,$parameters,$verbose);
+			if($this->cacheData($server_json,$command,$parameters,$verbose))
+				echo ($verbose) ? "Data cached successfully.\n" : "";
+			else
+				echo ($verbose) ? "Data could not be cached.\n" : "";
 			// decode response from server
 			return ($decode) ? json_decode($server_json,true) : $server_json;		
 		}
@@ -777,6 +788,7 @@
 				}
 				if(!is_dir($this->_cacheDir))
 					mkdir($this->_cacheDir);
+				echo ($verbose) ? "Attempting to save cache to $this->_cacheDir$filename.json \n" : "";
 				return file_put_contents("$this->_cacheDir$filename.json",$data);
 			} else {
 				echo ($verbose) ? "Data list empty." : "";
@@ -794,10 +806,13 @@
 			if(($cache = @file_get_contents("$this->_cacheDir$filename.json")) !== false) {
 				// cache file exists and was opened succesfully, check if it is empty
 				if(!empty($cache)) {
+					echo ($verbose) ? "Cache file opened successfully and is not empty.\n" : "";
 					return ($decode) ? json_decode($cache,true) : $cache;				
-				}			
+				}
+				echo ($verbose) ? "Cache file empty.\n" : "";
+				return false;			
 			}
-			echo ($verbose) ? "Could not open cache file or cache file was empty." : "";
+			echo ($verbose) ? "Could not open cache file.\n" : "";
 			return false;	
 		}
 	}
