@@ -1,8 +1,8 @@
 <?php
 	/*
-		Copyright 2012, 2011 Stanton T. Cady
+		Copyright 2011, 2012 Stanton T. Cady
 		
-		cumtd_php API v0.3 -- January 05, 2012
+		cumtd_php API v0.5 -- January 5, 2012
 		
 		This program is free software: you can redistribute it and/or modify
 	    it under the terms of the GNU General Public License as published by
@@ -43,7 +43,7 @@
 				cacheDir:	(optional) Directory to store cached data (default is ./cache/)
 				useCache: 	(optional) Boolean variable to enable/disable caching data (default is true)
 		*/
-		function __construct($apiKey, $apiUrl = 'http://developer.cumtd.com/api/', $version = '2.0', $cacheDir = './cache/', $useCache = true) {
+		function __construct($apiKey, $apiUrl = 'http://developer.cumtd.com/api/', $version = '2.0', $cacheDir = 'cache/', $useCache = true) {
 			$this->_apiKey = $apiKey;
 			$this->_apiUrl = $apiUrl;
 			$this->_version = $version;
@@ -672,14 +672,35 @@
 		/// Private functions
 		private function getResponse($command, $parameters, $decode = true, $verbose = false) {
 			if(isset($command)) {
-				// check if file_get_contents is enabled and can open remote urls
-				if(file_get_contents(__FILE__) && ini_get('allow_url_fopen')) {
-					$url = $this->_apiUrl.'v'.$this->_version.'/'.$this->_format.'/'.$command.'?key='.$this->_apiKey;
-					if(isset($parameters))
-						foreach($parameters as $parameter)
-							$url .= '&'.$parameter["name"].'='.$parameter["value"];
+				// prepare url
+				$url = $this->_apiUrl.'v'.$this->_version.'/'.$this->_format.'/'.$command.'?key='.$this->_apiKey;
+				// append parameters to url
+				if(isset($parameters))
+					foreach($parameters as $parameter)
+						$url .= '&'.$parameter["name"].'='.$parameter["value"];
+				// Check if cURL is available
+				if(extension_loaded("curl")) {
+					echo ($verbose) ? "Using cURL to get response from cumtd.\n" : "";
+					// Create new cURL session
+					$ch = curl_init();
+					// set URL and option to return result on success
+					curl_setopt_array($ch,array(CURLOPT_URL => $url, CURLOPT_RETURNTRANSFER => 1));
+					// get response from server
+					$rsp = curl_exec($ch);
+					// close cURL session
+					curl_close($ch);					
+				} elseif(file_get_contents(__FILE__) && ini_get('allow_url_fopen')) {
+					echo ($verbose) ? "Using file_get_contents to get response from cumtd.\n" : "";
+					// set context to allow server to close connection after download is complete
+					$context = stream_context_create(array('http' => array('header'=>'Connection: close')));
 					// get json response from cumtd server
-					$rsp = file_get_contents($url);
+					$rsp = file_get_contents($url,false,$context);
+				} else {
+					// both methods failed to retrieve response from cumtd
+					echo ($verbose) ? "Cannot load data from remote server.\n" : "";
+					return false;
+				}
+				if(isset($rsp) && $rsp !== false) {
 					// decode json into associative array
 					$rspArray = json_decode($rsp,true);
 					// check status of response
@@ -690,47 +711,47 @@
 					else
 						return $status;
 				} else {
-					// cannot use file_get_contents method for retreiving response from cumtd
-					echo $verbose ? "Cannot load data from remote server.\n" : "";
+					echo ($verobse) ? "There was an error getting the response from the server.\n" : "";
 					return false;
 				}
-				// add cURL later
-			} else
+			} else {
 				echo $verbose ? "Invalid command parameter.\n" : "";
+				return false;
+			}
 		}
 		
 		private function checkStatus($status, $verbose = false) {
 			switch($status["code"]) {
 				case 200:
-					echo $verbose ? "The request was completed successfully: ".$status["msg"].".\n" : "";
+					echo ($verbose) ? "The request was completed successfully: ".$status["msg"].".\n" : "";
 					return 200;
 					break;
 				case 202:
-					echo $verbose ? "The dataset has not been modified: ".$status["msg"].".\n" : "";
+					echo ($verbose) ? "The dataset has not been modified: ".$status["msg"].".\n" : "";
 					return 202;
 					break;
 				case 400:
-					echo $verbose ? "A parameter was invalid: ".$status["msg"].".\n" : "";
+					echo ($verbose) ? "A parameter was invalid: ".$status["msg"].".\n" : "";
 					return 400;
 					break;
 				case 401:
-					echo $verbose ? "The API key provided is invalid: ".$status["msg"].".\n" : "";
+					echo ($verbose) ? "The API key provided is invalid: ".$status["msg"].".\n" : "";
 					return 401;
 					break;
 				case 403:
-					echo $verbose ? "The hourly request limit on the given key has been reached: ".$status["msg"].".\n" : "";
+					echo ($verbose) ? "The hourly request limit on the given key has been reached: ".$status["msg"].".\n" : "";
 					return 403;
 					break;
 				case 404:
-					echo $verbose ? "The requested method does not exist: ".$status["msg"].".\n" : "";
+					echo ($verbose) ? "The requested method does not exist: ".$status["msg"].".\n" : "";
 					return 404;
 					break;
 				case 500:
-					echo $verbose ? "The server encountered an error: ".$status["msg"].".\n" : "";
+					echo ($verbose) ? "The server encountered an error: ".$status["msg"].".\n" : "";
 					return 500;
 					break;
 				default:
-					echo $verbose ? "Cannot process status: ".$status["msg"].".\n" : "";
+					echo ($verbose) ? "Cannot process status: ".$status["msg"].".\n" : "";
 					return 0;
 					break;
 			}
@@ -761,7 +782,7 @@
 						array_pop($parameters);
 						// check if server data matches cached data and return cache if it does
 						if($server_json == 202) {
-							echo ($verbose) ? "Cached data matches server data.\n" : "";
+							echo ($verbose) ? "Using cached data.\n" : "";
 							return ($decode) ? $cache : $cache_json;
 						}
 					// If no changeset_id exists, check if the data contains a timestamp
@@ -770,14 +791,16 @@
 						// compare the timestamp of the cached data to the last feed update timestamp
 						if($cache["time"] == $this->getLastFeedUpdate($verbose)) {
 							// feed has not been updated since cached data was retrieved
-							echo ($verbose) ? "Cached data timestamp matches feed update timestamp.\n" : "";
+							echo ($verbose) ? "Using cached data.\n" : "";
 							return ($decode) ? $cache : $cache_json;
 						}
+						echo ($verbose) ? "Feed has been updated since the dataset was cached.\n" : "";
 					} else
 						echo ($verbose) ? "Dataset contained in cache was empty and/or did not contain a changeset_id or data was stale.\n" : "";
 				} else
 					echo ($verbose) ? "Cache file could not be accessed.\n" : "";
-			}
+			} else
+				echo ($verbose) ? "Cache is disabled.\n" : "";
 			// check if data retrieved in previous section and get data if not
 			if(!isset($server_json)) {
 				echo ($verbose) ? "Getting new data from server.\n" : "";
@@ -802,7 +825,9 @@
 				if(!is_dir($this->_cacheDir))
 					mkdir($this->_cacheDir);
 				echo ($verbose) ? "Attempting to save cache to $this->_cacheDir$filename.json.\n" : "";
-				return file_put_contents("$this->_cacheDir$filename.json",$data);
+				// set context to allow server to close connection after upload is complete
+				$context = stream_context_create(array('http' => array('header'=>'Connection: close')));
+				return file_put_contents("$this->_cacheDir$filename.json",$data,0,$context);
 			} else {
 				echo ($verbose) ? "Data list empty." : "";
 				return false;
@@ -810,23 +835,47 @@
 		}
 		
 		private function getDataFromCache($command, $parameters, $decode = true, $verbose = false) {
+			// base of filename of cache file is the command name
 			$filename = $command;
+			// append parameters to filename
 			if(is_array($parameters)) {
 				foreach($parameters as $parameter)
 					$filename .= '&'.$parameter["name"].'='.$parameter["value"];
 			}
-			// check if file can be found and opened
-			if(($cache = @file_get_contents("$this->_cacheDir$filename.json")) !== false) {
+			// construct full filename
+			$filename = "$this->_cacheDir$filename.json";
+			// Check if cURL is available
+			if(extension_loaded("curl")) {
+				$filename = $_SERVER['SERVER_NAME'].dirname($_SERVER['PHP_SELF'])."/".$filname;
+				echo ($verbose) ? "Using cURL to open cache file.\n" : "";
+				// Create new cURL session
+				$ch = curl_init();
+				// set URL and option to return result on success
+				curl_setopt_array($ch,array(CURLOPT_URL => $filename, CURLOPT_RETURNTRANSFER => 1));
+				// get cache file
+				$cache = curl_exec($ch);
+				// close cURL session
+				curl_close($ch);
+			// check if file_get_contents works for local files				
+			} elseif(file_get_contents(__FILE__)) {
+				echo ($verbose) ? "Using file_get_contents to open cache file.\n" : "";
+				// set context to allow server to close connection after download is complete
+				$context = stream_context_create(array('http' => array('header'=>'Connection: close')));
+				// get cache file
+				$cache = file_get_contents($filename,false,$context);
+			} else
+				// both methods failed to retrieve the cache file
+				echo ($verbose) ? "Cannot load data from cache file.\n" : "";
+			if(isset($cache) && $cache !== false) {
 				// cache file exists and was opened succesfully, check if it is empty
 				if(!empty($cache)) {
 					echo ($verbose) ? "Cache file opened successfully and is not empty.\n" : "";
 					return ($decode) ? json_decode($cache,true) : $cache;				
 				}
 				echo ($verbose) ? "Cache file empty.\n" : "";
-				return false;			
-			}
-			echo ($verbose) ? "Could not open cache file.\n" : "";
-			return false;	
+			} else
+				echo ($verbose) ? "There was an error getting the cache file.\n" : "";
+			return false;
 		}
 	}
 ?>
