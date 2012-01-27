@@ -2,7 +2,7 @@
 	/*
 		Copyright 2011, 2012 Stanton T. Cady
 		
-		cumtd_php API v0.6 -- January 26, 2012
+		cumtd_php API v0.7 -- January 26, 2012
 		
 		This program is free software: you can redistribute it and/or modify
 	    it under the terms of the GNU General Public License as published by
@@ -23,7 +23,7 @@
 		// Public properties
 		public $_format;	// json or xml (currently only json is supported and is the default)
 		public $_apiUrl; 	// url that points to the cumtd api (default is http://developer.cumtd.com/api/)
-		public $_version;	// cumtd api version number as a string (default is 2.0)
+		public $_version;	// cumtd api version number as a string (default is 2.1)
 					
 		// Private properties
 		private $_apiKey;	// your api key (signup for one at http://developer.cumtd.com/)
@@ -39,11 +39,11 @@
 			Parameters: 
 				apiKey: 	(required) This is your developer api key
 				apiUrl: 	(optional) URL that points to the cumtd developer api (default is http://developer.cumtd.com/api/)
-				version: 	(optional) cumtd developer api version as a string. The first supported version is 2.0 (default is 2.0)
+				version: 	(optional) cumtd developer api version as a string. The first supported version is 2.0 (default is 2.1)
 				cacheDir:	(optional) Directory to store cached data (default is ./cache/)
 				useCache: 	(optional) Boolean variable to enable/disable caching data (default is true)
 		*/
-		function __construct($apiKey, $apiUrl = 'http://developer.cumtd.com/api/', $version = '2.0', $cacheDir = 'cache/', $useCache = true) {
+		function __construct($apiKey, $apiUrl = 'http://developer.cumtd.com/api/', $version = '2.1', $cacheDir = 'cache/', $useCache = true) {
 			$this->_apiKey = $apiKey;
 			$this->_apiUrl = $apiUrl;
 			$this->_version = $version;
@@ -484,7 +484,10 @@
 				
 			Returns: On success, an associative array (default) or json string of stops with the following keys:
 						code:		text message code
-						point:		stop points that compose a parent stop
+						point:		stop points that compose a parent stop (v2.0)
+						stop_point: stop points that compose a parent stop (v2.1)
+						rank:		(v2.0)
+						percent:	how closely the the stop matches the query (v2.1)
 						stop_id:	id of stop
 						stop_lat:	latitude of stop
 						stop_lon:	longitude of stop
@@ -594,12 +597,15 @@
 				verbose: 			(optional) boolean variable to enable/disable printing responses (useful for debugging)
 				
 			Returns: On success, an associative array (default) or json string of itineraries with the following keys:
-						itinerary:	a single itinerary to complete the requested trip
-						leg:		a single leg in an itinerary. this can be either riding or walking.
-						walk:		a leg of the journey that requires walking.
-						service:	a leg of the journey that requires riding. (see remarks for multiple services in a single leg)
-						begin:		the starting point for a leg
-						end:		the ending point for a leg
+						start_time:		the time the itinerary will begin (v2.1)
+						end_time:		the time the itinerary will end (v2.1)
+						travel_time:	the total travel time in minutes (v2.1)
+						itinerary:		a single itinerary to complete the requested trip
+						leg:			a single leg in an itinerary. this can be either riding or walking.
+						walk:			a leg of the journey that requires walking.
+						service:		a leg of the journey that requires riding. (see remarks for multiple services in a single leg)
+						begin:			the starting point for a leg
+						end:			the ending point for a leg
 					 Otherwise:
 					 	false
 		*/		
@@ -638,12 +644,15 @@
 				verbose: 				(optional) boolean variable to enable/disable printing responses (useful for debugging)
 				
 			Returns: On success, an associative array (default) or json string of itineraries with the following keys:
-						itinerary:	a single itinerary to complete the requested trip
-						leg:		a single leg in an itinerary. this can be either riding or walking.
-						walk:		a leg of the journey that requires walking.
-						service:	a leg of the journey that requires riding. (see remarks for multiple services in a single leg)
-						begin:		the starting point for a leg
-						end:		the ending point for a leg
+						start_time:		the time the itinerary will begin (v2.1)
+						end_time:		the time the itinerary will end (v2.1)
+						travel_time:	the total travel time in minutes (v2.1)
+						itinerary:		a single itinerary to complete the requested trip
+						leg:			a single leg in an itinerary. this can be either riding or walking.
+						walk:			a leg of the journey that requires walking.
+						service:		a leg of the journey that requires riding. (see remarks for multiple services in a single leg)
+						begin:			the starting point for a leg
+						end:			the ending point for a leg
 					 Otherwise:
 					 	false
 		*/			
@@ -815,10 +824,13 @@
 					if($status == 200)
 						return ($decode) ? $rspArray : $rsp;
 					else {
-						return $status;
+						if($this->_version == "2.0")
+							return $status;
+						else
+							return false;
 					}
 				} else {
-					echo ($verobse) ? "There was an error getting the response from the server.\n" : "";
+					echo ($verbose) ? "There was an error getting the response from the server.\n" : "";
 					return false;
 				}
 			} else {
@@ -834,8 +846,13 @@
 					return 200;
 					break;
 				case 202:
-					echo ($verbose) ? "The dataset has not been modified: ".$status["msg"].".\n" : "";
-					return 202;
+					if($this->_version == "2.0") {
+						echo ($verbose) ? "The dataset has not been modified: ".$status["msg"].".\n" : "";
+						return 202;
+					} else {
+						echo ($verbose) ? "A 202 response code should not be returned in this version of the API.\n" : "";
+						return 0;
+					}						
 					break;
 				case 400:
 					echo ($verbose) ? "A parameter was invalid: ".$status["msg"].".\n" : "";
@@ -891,9 +908,17 @@
 								// remove changeset id from parameters array in case it is used later
 								array_pop($parameters);
 								// check if server data matches cached data and return cache if it does
-								if($server_json == 202) {
-									echo ($verbose) ? "Using cached data.\n" : "";
-									return ($decode) ? $cache : $cache_json;
+								if($this->_version == "2.0") {
+									if($server_json == 202) {
+										echo ($verbose) ? "Using cached data.\n" : "";
+										return ($decode) ? $cache : $cache_json;
+									}
+								} else {
+									$server = json_decode($server_json,true);
+									if($server["new_changeset"] === false) {
+										echo ($verbose) ? "Using cached data.\n" : "";
+										return ($decode) ? $cache : $cache_json;
+									}
 								}
 							} else
 								// reset server_json variable so another attempt to get data from the server can be made
