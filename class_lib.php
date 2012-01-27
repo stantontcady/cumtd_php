@@ -886,13 +886,18 @@
 							array_push($parameters,array("name"=>"changeset_id","value"=>$cache["changeset_id"]));
 							// get dataset from server with changeset id from cached data
 							$server_json = $this->getResponse($command,$parameters,false,$verbose);
-							// remove changeset id from parameters array in case it is used later
-							array_pop($parameters);
-							// check if server data matches cached data and return cache if it does
-							if($server_json == 202) {
-								echo ($verbose) ? "Using cached data.\n" : "";
-								return ($decode) ? $cache : $cache_json;
-							}
+							// make sure there was no error getting the response
+							if($server_json !== false) {
+								// remove changeset id from parameters array in case it is used later
+								array_pop($parameters);
+								// check if server data matches cached data and return cache if it does
+								if($server_json == 202) {
+									echo ($verbose) ? "Using cached data.\n" : "";
+									return ($decode) ? $cache : $cache_json;
+								}
+							} else
+								// reset server_json variable so another attempt to get data from the server can be made
+								unset($server_json);
 						// If no changeset_id exists, check if the data contains a timestamp
 						} elseif(array_key_exists("time",$cache)) {
 							echo ($verbose) ? "Timestamp exists, comparing to last feed update timestamp.\n" : "";
@@ -916,13 +921,17 @@
 				echo ($verbose) ? "Getting new data from server.\n" : "";
 				$server_json = $this->getResponse($command,$parameters,false,$verbose);
 			}
-			// cache data from server
-			if($this->cacheData($server_json,$command,$parameters,$verbose))
-				echo ($verbose) ? "Data cached successfully.\n" : "";
-			else
-				echo ($verbose) ? "Data could not be cached.\n" : "";
-			// decode response from server
-			return ($decode) ? json_decode($server_json,true) : $server_json;		
+			// check response from server
+			if($server_json !== false) {
+				// cache data from server
+				if($this->cacheData($server_json,$command,$parameters,$verbose))
+					echo ($verbose) ? "Data cached successfully.\n" : "";
+				else
+					echo ($verbose) ? "Data could not be cached.\n" : "";
+				// decode response from server
+				return ($decode) ? json_decode($server_json,true) : $server_json;
+			} else
+				return false;
 		}
 		
 		private function cacheData($data, $command, $parameters, $verbose = false) {
