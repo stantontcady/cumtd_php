@@ -2,7 +2,7 @@
 	/*
 		Copyright 2011, 2012 Stanton T. Cady
 		
-		cumtd_php API v0.7 -- January 26, 2012
+		cumtd_php API v0.7.1 -- January 26, 2012
 		
 		This program is free software: you can redistribute it and/or modify
 	    it under the terms of the GNU General Public License as published by
@@ -524,9 +524,10 @@
 			Returns: On success, an associative array (default) or json string of stop times with the following keys:
 						arrival_times:	scheduled time of arrival (HH:mm:ss)
 						departure_time:	scheduled time of departure (HH:mm:ss)
-						stop_id:		id of stop
+						stop_id:		id of stop (v2.0)
+						stop_point:		contains the stop_id, name and lat/lon (v2.1)
 						stop_sequence:	sequence of stop
-						trip_id:		id of trip
+						trip_id:		id of trip (v2.0)
 					 Otherwise:
 						false
 		*/		
