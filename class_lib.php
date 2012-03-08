@@ -2,7 +2,7 @@
 	/*
 		Copyright 2011, 2012 Stanton T. Cady
 		
-		cumtd_php API v0.7.1 -- January 26, 2012
+		cumtd_php API v0.7.5 -- March 7, 2012
 		
 		This program is free software: you can redistribute it and/or modify
 	    it under the terms of the GNU General Public License as published by
@@ -24,12 +24,12 @@
 		public $_format;	// json or xml (currently only json is supported and is the default)
 		public $_apiUrl; 	// url that points to the cumtd api (default is http://developer.cumtd.com/api/)
 		public $_version;	// cumtd api version number as a string (default is 2.1)
-					
+
 		// Private properties
 		private $_apiKey;	// your api key (signup for one at http://developer.cumtd.com/)
 		private $_cacheDir;	// directory to store the cache (default is ./cache/)
 		private $_useCache;	// boolean variable to enable/disable caching data (default is true)
-		
+
 		// Public methods
 		/*
 			Function: Default cumtd constructor
@@ -51,7 +51,7 @@
 			$this->_useCache = $useCache;
 			$this->_format = 'json';
 		}
-			
+
 		/// Cache settings
 		/*
 			Function: setCacheDir
@@ -82,7 +82,7 @@
 		function enableCache() {
 			$this->_useCache = true;
 		}
-		
+
 		/// Calendar dates
 		/*
 			Function: getCalendarDatesByDate
@@ -181,7 +181,55 @@
 			else
 				return ($decode) ? $rsp["departures"] : json_encode($rsp["departures"]);
 		}
-		
+		/*
+			Function: getDeparturesByStopWithDirection
+			
+			Purpose: Gets the departures based upon a specified stop and direction(s)
+			
+			Parameters: 
+				stop_id: 	(required) id of the stop to get departures for (e.g. IU is the stop_id for Illini Union)
+				direction:	(required) a string or array of strings of full word cardinal directions
+				route_id: 	(optional) string or array of stings of bus route id(s) (e.g. ILLINI is the route_id for the 22)
+				pt: 		(optional) preview time in minutes between 0 and 60 (default is 30)
+				count:		(optional) maximum number of departures you would like to receive
+				decode:		(optional) if set to true the function will return an associative array, otherwise a json string will be returned
+				verbose: 	(optional) boolean variable to enable/disable printing responses (useful for debugging)
+				
+			Returns: On success, an associative array (default) or json string of departures matching the specified directions with the following keys:
+						destination:	trip's destination stop
+						expected:		expected departure time of the bus for the given stop
+						expected_mins:	number of minutes before expected departure time
+						headsign:		information usually shown on headsign
+						location:		latitude and longitude of vehicle
+						is_monitored:	whether the vehicle is communicating
+						is_scheduled:	whether this trip was scheduled
+						origin:			trip's origin stop
+						route:			route information for the trip
+						scheduled:		scheduled departure time of the bus for the given stop
+						stop_id:		id of the stop the bus will be at
+						trip:			trip information for the departure
+						vehicle_id:		id associated with vehicle
+					 Otherwise:
+					 	false
+		*/			
+		function getDeparturesByStopWithDirection($stop_id, $direction, $route_id = NULL, $pt = 30, $count = NULL, $decode = true, $verbose = false) {
+			$departures = $this->getDeparturesByStop($stop_id,$route_id,$pt,$count,true,$verbose);
+			if($departures === false)
+				return false;
+			else {
+				$d = array();
+				if(!is_array($direction))
+					$direction = array($direction);
+				foreach($direction as $i => $value)
+					$direction[$i] = strtolower($value);
+				foreach($departures as $departure) {
+					if(in_array(strtolower($departure["trip"]["direction"]),$direction))
+						array_push($d,$departure);				
+				}
+				return ($decode) ? $d : json_encode($d);
+			}	
+		}
+
 		/// Routes		
 		/*
 			Function: getRoute
@@ -266,7 +314,7 @@
 			else			
 				return ($decode) ? $rsp["routes"] : json_encode($rsp["routes"]);
 		}
-		
+
 		/// Shapes
 		/*
 			Function: getShape
@@ -327,7 +375,7 @@
 			else
 				return ($decode) ? $rsp["shapes"] : json_encode($rsp["shapes"]);
 		}
-		
+
 		/// Stops
 		/*
 			Function: getStop
@@ -509,7 +557,7 @@
 			else
 				return ($decode) ? $rsp["stops"] : json_encode($rsp["stops"]);
 		}	
-		
+
 		/// Stop Times
 		/*
 			Function: getStopTimesByTrip
@@ -577,7 +625,7 @@
 			else
 				return ($decode) ? $rsp["stop_times"] : json_encode($rsp["stop_times"]);			
 		}
-		
+
 		/// Trip Planner
 		/*
 			Function: getPlannedTripsByLatLon
@@ -675,7 +723,7 @@
 			else
 				return ($decode) ? $rsp["itineraries"] : json_encode($rsp["itineraries"]);			
 		}
-		
+
 		/// Trips
 		/*
 			Function: getTrip
@@ -762,7 +810,7 @@
 			else
 				return ($decode) ? $rsp["trips"] : json_encode($rsp["trips"]);		
 		}
-		
+
 		/// Metadata
 		/*
 			Function: getLastFeedUpdate
@@ -784,7 +832,7 @@
 			else
 				return $rsp["last_updated"];
 		}
-		
+
 		/// Private functions
 		private function getResponse($command, $parameters, $decode = true, $verbose = false) {
 			if(isset($command)) {
@@ -839,7 +887,7 @@
 				return false;
 			}
 		}
-		
+
 		private function checkStatus($status, $verbose = false) {
 			switch($status["code"]) {
 				case 200:
@@ -881,7 +929,7 @@
 					break;
 			}
 		}
-		
+
 		private function getCachedData($command, $parameters, $decode = true, $verbose = false) {
 			// check if cache is enabled (default)
 			if($this->_useCache === true) {
@@ -959,7 +1007,7 @@
 			} else
 				return false;
 		}
-		
+
 		private function cacheData($data, $command, $parameters, $verbose = false) {
 			if(isset($data)) {
 				$filename = $command;
@@ -978,7 +1026,7 @@
 				return false;
 			}
 		}
-		
+
 		private function getDataFromCache($command, $parameters, $decode = true, $verbose = false) {
 			// base of filename of cache file is the command name
 			$filename = $command;
